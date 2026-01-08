@@ -1,0 +1,19 @@
+(function() {
+  const year = 2025;
+  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+  const today = extractToday();
+
+  Mousetrap.bind('left', function(e) {
+    alert('left');
+  });
+  Mousetrap.bind('right', function(e) {
+    alert('right');
+  });
+
+  function extractToday() {
+    const match = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/.exec(location.href);
+    const today = { year: parseInt(match.groups.year, 10), month: parseInt(match.groups.month, 10), day: parseInt(match.groups.day, 10) };
+    return today;
+  }
+})();
