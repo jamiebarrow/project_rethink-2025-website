@@ -13,6 +13,9 @@ const modalNext = document.getElementById('modal-next');
 
 let currentImages = [];
 let currentImageIndex = 0;
+let currentCaption = '';
+let touchStartX = 0;
+let touchStartY = 0;
 
 const hideElement = (element) => {
   element.classList.add('is-hidden');
@@ -28,7 +31,7 @@ const formatCaption = (image) => {
   if (!image) {
     return '';
   }
-  return image.getAttribute('alt') || image.getAttribute('src') || '';
+  return currentCaption || image.getAttribute('alt') || image.getAttribute('src') || '';
 };
 
 const updateModalImage = (index) => {
@@ -70,6 +73,8 @@ const parseDayContent = (htmlText) => {
 const prepareImages = () => {
   const images = Array.from(dayBody.querySelectorAll('img'));
   currentImages = images;
+  const dayHashtag = dayBody.querySelector('h2');
+  currentCaption = dayHashtag ? dayHashtag.textContent.trim() : '';
 
   images.forEach((image, index) => {
     image.classList.add('day-image');
@@ -84,6 +89,33 @@ const prepareImages = () => {
       }
     });
   });
+};
+
+const handleTouchStart = (event) => {
+  if (event.touches.length !== 1) {
+    return;
+  }
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+};
+
+const handleTouchEnd = (event) => {
+  if (!event.changedTouches.length) {
+    return;
+  }
+  const deltaX = event.changedTouches[0].clientX - touchStartX;
+  const deltaY = event.changedTouches[0].clientY - touchStartY;
+  const swipeThreshold = 50;
+
+  if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) < Math.abs(deltaY)) {
+    return;
+  }
+
+  if (deltaX > 0) {
+    updateModalImage(currentImageIndex - 1);
+  } else {
+    updateModalImage(currentImageIndex + 1);
+  }
 };
 
 const showDayView = async (href, updateHistory = true) => {
@@ -138,6 +170,9 @@ modal.addEventListener('click', (event) => {
     closeModal();
   }
 });
+
+modalImage.addEventListener('touchstart', handleTouchStart, { passive: true });
+modalImage.addEventListener('touchend', handleTouchEnd);
 
 window.addEventListener('keydown', (event) => {
   if (modal.classList.contains('is-hidden')) {
