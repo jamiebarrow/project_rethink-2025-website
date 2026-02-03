@@ -13,6 +13,9 @@ const modalNext = document.getElementById('modal-next');
 
 let currentImages = [];
 let currentImageIndex = 0;
+let currentCaption = '';
+let touchStartX = 0;
+let touchStartY = 0;
 
 const hideElement = (element) => {
   element.classList.add('is-hidden');
@@ -28,7 +31,7 @@ const formatCaption = (image) => {
   if (!image) {
     return '';
   }
-  return image.getAttribute('alt') || image.getAttribute('src') || '';
+  return currentCaption || image.getAttribute('alt') || image.getAttribute('src') || '';
 };
 
 const updateModalImage = (index) => {
@@ -61,6 +64,9 @@ const parseDayContent = (htmlText) => {
   const doc = parser.parseFromString(htmlText, 'text/html');
   const dayHeading = doc.querySelector('h1');
   const content = doc.querySelector('#post-container');
+  if (content) {
+    content.querySelectorAll('h3').forEach((heading) => heading.remove());
+  }
   return {
     heading: dayHeading ? dayHeading.textContent.trim() : 'Selected day',
     content: content ? content.innerHTML : '<p>No content found.</p>',
@@ -70,6 +76,10 @@ const parseDayContent = (htmlText) => {
 const prepareImages = () => {
   const images = Array.from(dayBody.querySelectorAll('img'));
   currentImages = images;
+  const dayHashtag = dayBody.querySelector('h2');
+  currentCaption = dayHashtag ? dayHashtag.textContent.trim() : '';
+  const imageGrid = dayBody.querySelector('.grid');
+  const maxVisibleImages = 6;
 
   images.forEach((image, index) => {
     image.classList.add('day-image');
@@ -84,6 +94,46 @@ const prepareImages = () => {
       }
     });
   });
+
+  if (imageGrid && images.length > maxVisibleImages) {
+    imageGrid.classList.add('day-image-grid');
+    const hiddenCount = images.length - maxVisibleImages;
+    images.slice(maxVisibleImages).forEach((image) => {
+      image.classList.add('day-image--extra');
+    });
+    const lastVisible = images[maxVisibleImages - 1];
+    if (lastVisible) {
+      lastVisible.classList.add('day-image--more');
+      lastVisible.setAttribute('data-more-count', hiddenCount);
+    }
+  }
+};
+
+const handleTouchStart = (event) => {
+  if (event.touches.length !== 1) {
+    return;
+  }
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+};
+
+const handleTouchEnd = (event) => {
+  if (!event.changedTouches.length) {
+    return;
+  }
+  const deltaX = event.changedTouches[0].clientX - touchStartX;
+  const deltaY = event.changedTouches[0].clientY - touchStartY;
+  const swipeThreshold = 50;
+
+  if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) < Math.abs(deltaY)) {
+    return;
+  }
+
+  if (deltaX > 0) {
+    updateModalImage(currentImageIndex - 1);
+  } else {
+    updateModalImage(currentImageIndex + 1);
+  }
 };
 
 const showDayView = async (href, updateHistory = true) => {
@@ -138,6 +188,9 @@ modal.addEventListener('click', (event) => {
     closeModal();
   }
 });
+
+modalImage.addEventListener('touchstart', handleTouchStart, { passive: true });
+modalImage.addEventListener('touchend', handleTouchEnd);
 
 window.addEventListener('keydown', (event) => {
   if (modal.classList.contains('is-hidden')) {
