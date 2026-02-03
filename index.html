@@ -10,11 +10,11 @@
 	<div id="container" class="flex-col items-center gap-x-4 gap-y-4 p-6 max-w-8/10 mx-auto">
 		<h1 class="text-2xl mb-4 text-center text-white font-bold">#rethink</h1>
 		<h2 class="text-lg my-8 text-center text-white font-bold">
-			<span>#jamiebarrow<span>
-			<span>#aiArt<span>
-			<span>#MidJourney<span>
+			<span>#jamiebarrow</span>
+			<span>#aiArt</span>
+			<span>#MidJourney</span>
 		</h2>
-		<main class="pb-8">
+		<main id="year-view" class="pb-8">
 			<h3 class="font-bold my-4">January</h3>
 			<ol class="flex flex-wrap gap-x-4 gap-y-4">
 				<li><a href="./2025-01-01.html">1</a></li>
@@ -417,6 +417,23 @@
 				<li><a href="./2025-12-31.html">31</a></li>
 			</ol>
 		</main>
+		<section id="day-view" class="day-view is-hidden" aria-hidden="true">
+			<div class="day-view__header">
+				<button id="day-back" class="day-view__back" type="button">← Back to year</button>
+				<h2 id="day-title" class="text-xl text-center font-bold"></h2>
+			</div>
+			<div id="day-body" class="day-view__body"></div>
+		</section>
+		<div id="image-modal" class="image-modal is-hidden" aria-hidden="true" role="dialog" aria-modal="true">
+			<div class="image-modal__content">
+				<button id="modal-close" class="image-modal__close" type="button" aria-label="Close image">×</button>
+				<button id="modal-prev" class="image-modal__nav image-modal__nav--prev" type="button" aria-label="Previous image">‹</button>
+				<img id="modal-image" alt="" />
+				<button id="modal-next" class="image-modal__nav image-modal__nav--next" type="button" aria-label="Next image">›</button>
+				<p id="modal-caption" class="image-modal__caption"></p>
+			</div>
+		</div>
 	</div>
+	<script src="./app.js"></script>
 </body>
 </html>
