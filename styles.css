@@ -732,7 +732,8 @@
 
   .day-gallery,
   #post-container .grid {
-    column-count: 1;
+    column-count: 2;
+    column-gap: 0.75rem;
   }
 
   .image-modal {
