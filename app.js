@@ -98,28 +98,7 @@ const prepareImages = () => {
 
   const galleries = Array.from(dayBody.querySelectorAll('.grid'));
   galleries.forEach((gallery) => {
-    const galleryImages = Array.from(gallery.querySelectorAll('img'));
-    if (!galleryImages.length) {
-      return;
-    }
     gallery.classList.add('day-gallery');
-    galleryImages.forEach((image, index) => {
-      const wrapper = image.closest('.day-image-wrapper');
-      if (!wrapper) {
-        return;
-      }
-      wrapper.classList.toggle('day-image-wrapper--hidden', index >= 4);
-    });
-
-    if (galleryImages.length > 4) {
-      const moreCount = galleryImages.length - 4;
-      const wrappers = gallery.querySelectorAll('.day-image-wrapper');
-      const lastVisible = wrappers[3];
-      if (lastVisible) {
-        lastVisible.classList.add('day-image-wrapper--more');
-        lastVisible.setAttribute('data-more', `+${moreCount} more`);
-      }
-    }
   });
 };
 
