@@ -486,6 +486,7 @@
   flex: 1 1 100%;
   text-align: center;
   margin: 0;
+  width: 100%;
 }
 
 .day-view__nav {

@@ -3,7 +3,6 @@ const yearList = document.getElementById('year-list');
 const dayView = document.getElementById('day-view');
 const dayTitle = document.getElementById('day-title');
 const dayBody = document.getElementById('day-body');
-const dayBack = document.getElementById('day-back');
 const dayPrev = document.getElementById('day-prev');
 const dayNext = document.getElementById('day-next');
 const dayPrevLabel = document.getElementById('day-prev-label');
@@ -22,6 +21,13 @@ const weekPrev = document.getElementById('week-prev');
 const weekNext = document.getElementById('week-next');
 
 const viewButtons = Array.from(document.querySelectorAll('[data-view]'));
+const viewButtonsByView = viewButtons.reduce((acc, button) => {
+  const view = button.dataset.view;
+  if (view) {
+    acc[view] = button;
+  }
+  return acc;
+}, {});
 
 const modal = document.getElementById('image-modal');
 const modalImage = document.getElementById('modal-image');
@@ -36,7 +42,6 @@ let currentCaption = '';
 let touchStartX = 0;
 let touchStartY = 0;
 let activeCalendarView = 'year';
-let lastCalendarView = 'year';
 let currentMonthIndex = 0;
 let currentWeekStartIndex = 0;
 
@@ -73,10 +78,16 @@ const showElement = (element) => {
   element.setAttribute('aria-hidden', 'false');
 };
 
-const viewLabels = {
-  year: 'year',
-  month: 'month',
-  week: 'week',
+const updateViewSwitcherLabels = () => {
+  const monthButton = viewButtonsByView.month;
+  if (monthButton) {
+    monthButton.textContent = months[currentMonthIndex].name.slice(0, 3);
+  }
+  const weekButton = viewButtonsByView.week;
+  if (weekButton) {
+    const weekNumber = Math.floor(currentWeekStartIndex / 7) + 1;
+    weekButton.textContent = `W${weekNumber}`;
+  }
 };
 
 const formatCaption = (image) => {
@@ -402,12 +413,10 @@ const showDayView = async (dayId, updateHistory = true) => {
       const dayIndex = getDayIndex(parsedDay.month, parsedDay.day);
       currentWeekStartIndex = getWeekStartIndex(dayIndex ?? 0);
     }
-    lastCalendarView = activeCalendarView;
     hideCalendarViews();
     showElement(dayView);
     updateDayNavigation(dayId);
-    const backLabel = viewLabels[lastCalendarView] || 'year';
-    dayBack.textContent = `← Back to ${backLabel}`;
+    updateViewSwitcherLabels();
 
     if (updateHistory) {
       window.history.pushState({ day: dayId }, '', `#${dayId}`);
@@ -443,8 +452,6 @@ yearView.addEventListener('click', handleDayLinkClick);
 monthView.addEventListener('click', handleDayLinkClick);
 weekView.addEventListener('click', handleDayLinkClick);
 
-dayBack.addEventListener('click', () => showCalendarView(lastCalendarView));
-
 dayPrev.addEventListener('click', () => {
   const dayId = dayPrev.dataset.day;
   if (dayId) {
@@ -471,21 +478,25 @@ viewButtons.forEach((button) => {
 monthPrev.addEventListener('click', () => {
   currentMonthIndex = (currentMonthIndex - 1 + months.length) % months.length;
   buildMonthView();
+  updateViewSwitcherLabels();
 });
 
 monthNext.addEventListener('click', () => {
   currentMonthIndex = (currentMonthIndex + 1) % months.length;
   buildMonthView();
+  updateViewSwitcherLabels();
 });
 
 weekPrev.addEventListener('click', () => {
   currentWeekStartIndex = (currentWeekStartIndex - 7 + totalDays) % totalDays;
   buildWeekView();
+  updateViewSwitcherLabels();
 });
 
 weekNext.addEventListener('click', () => {
   currentWeekStartIndex = (currentWeekStartIndex + 7) % totalDays;
   buildWeekView();
+  updateViewSwitcherLabels();
 });
 
 modalClose.addEventListener('click', closeModal);
@@ -537,4 +548,5 @@ window.addEventListener('popstate', syncWithHash);
 window.addEventListener('hashchange', syncWithHash);
 
 buildYearView();
+updateViewSwitcherLabels();
 syncWithHash();
