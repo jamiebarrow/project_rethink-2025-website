@@ -14,14 +14,45 @@
 			<span>#aiArt</span>
 			<span>#MidJourney</span>
 		</h2>
+		<nav class="view-switcher" aria-label="Calendar views">
+			<button class="view-switcher__button is-active" type="button" data-view="year" aria-pressed="true">Year</button>
+			<button class="view-switcher__button" type="button" data-view="month" aria-pressed="false">Month</button>
+			<button class="view-switcher__button" type="button" data-view="week" aria-pressed="false">Week</button>
+		</nav>
 		<main id="year-view" class="pb-8">
 			<p class="text-center text-lg font-bold mb-6">Explore 2025 one day at a time.</p>
 			<div id="year-list" class="year-list" aria-live="polite"></div>
 		</main>
+		<section id="month-view" class="month-view is-hidden" aria-hidden="true">
+			<div class="calendar-nav">
+				<button id="month-prev" class="calendar-nav__button" type="button">← Previous month</button>
+				<h2 id="month-title" class="calendar-nav__title text-xl text-center font-bold"></h2>
+				<button id="month-next" class="calendar-nav__button" type="button">Next month →</button>
+			</div>
+			<ol id="month-list" class="calendar-list" aria-live="polite"></ol>
+		</section>
+		<section id="week-view" class="week-view is-hidden" aria-hidden="true">
+			<div class="calendar-nav">
+				<button id="week-prev" class="calendar-nav__button" type="button">← Previous week</button>
+				<h2 id="week-title" class="calendar-nav__title text-xl text-center font-bold"></h2>
+				<button id="week-next" class="calendar-nav__button" type="button">Next week →</button>
+			</div>
+			<ol id="week-list" class="calendar-list" aria-live="polite"></ol>
+		</section>
 		<section id="day-view" class="day-view is-hidden" aria-hidden="true">
 			<div class="day-view__header">
 				<button id="day-back" class="day-view__back" type="button">← Back to year</button>
 				<h2 id="day-title" class="day-view__title text-xl text-center font-bold"></h2>
+				<div class="day-view__nav" aria-label="Day navigation">
+					<button id="day-prev" class="day-view__nav-button" type="button" aria-label="Previous day">
+						<span class="day-view__nav-arrow">‹</span>
+						<span id="day-prev-label"></span>
+					</button>
+					<button id="day-next" class="day-view__nav-button" type="button" aria-label="Next day">
+						<span id="day-next-label"></span>
+						<span class="day-view__nav-arrow">›</span>
+					</button>
+				</div>
 			</div>
 			<div id="day-body" class="day-view__body"></div>
 		</section>

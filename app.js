@@ -4,6 +4,24 @@ const dayView = document.getElementById('day-view');
 const dayTitle = document.getElementById('day-title');
 const dayBody = document.getElementById('day-body');
 const dayBack = document.getElementById('day-back');
+const dayPrev = document.getElementById('day-prev');
+const dayNext = document.getElementById('day-next');
+const dayPrevLabel = document.getElementById('day-prev-label');
+const dayNextLabel = document.getElementById('day-next-label');
+
+const monthView = document.getElementById('month-view');
+const monthTitle = document.getElementById('month-title');
+const monthList = document.getElementById('month-list');
+const monthPrev = document.getElementById('month-prev');
+const monthNext = document.getElementById('month-next');
+
+const weekView = document.getElementById('week-view');
+const weekTitle = document.getElementById('week-title');
+const weekList = document.getElementById('week-list');
+const weekPrev = document.getElementById('week-prev');
+const weekNext = document.getElementById('week-next');
+
+const viewButtons = Array.from(document.querySelectorAll('[data-view]'));
 
 const modal = document.getElementById('image-modal');
 const modalImage = document.getElementById('modal-image');
@@ -17,6 +35,10 @@ let currentImageIndex = 0;
 let currentCaption = '';
 let touchStartX = 0;
 let touchStartY = 0;
+let activeCalendarView = 'year';
+let lastCalendarView = 'year';
+let currentMonthIndex = 0;
+let currentWeekStartIndex = 0;
 
 const YEAR = 2025;
 const months = [
@@ -33,6 +55,13 @@ const months = [
   { name: 'November', days: 30 },
   { name: 'December', days: 31 },
 ];
+const totalDays = months.reduce((sum, month) => sum + month.days, 0);
+const monthStartIndices = months.reduce((starts, month, index) => {
+  const lastStart = starts[index - 1] ?? 0;
+  const lastDays = months[index - 1]?.days ?? 0;
+  starts.push(index === 0 ? 0 : lastStart + lastDays);
+  return starts;
+}, []);
 
 const hideElement = (element) => {
   element.classList.add('is-hidden');
@@ -42,6 +71,12 @@ const hideElement = (element) => {
 const showElement = (element) => {
   element.classList.remove('is-hidden');
   element.setAttribute('aria-hidden', 'false');
+};
+
+const viewLabels = {
+  year: 'year',
+  month: 'month',
+  week: 'week',
 };
 
 const formatCaption = (image) => {
@@ -70,12 +105,7 @@ const formatDayId = (month, day) => {
 
 const buildDayPath = (dayId) => `./${dayId}.html`;
 
-const getDayIdFromHash = () => {
-  const hash = window.location.hash.replace('#', '').trim();
-  return hash || null;
-};
-
-const getAdjacentDayId = (dayId, delta) => {
+const parseDayId = (dayId) => {
   if (!dayId) {
     return null;
   }
@@ -83,14 +113,70 @@ const getAdjacentDayId = (dayId, delta) => {
   const year = Number(yearText);
   const month = Number(monthText);
   const day = Number(dayText);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day) || year !== YEAR) {
     return null;
   }
-  const date = new Date(year, month - 1, day + delta);
-  if (date.getFullYear() !== YEAR) {
+  return { month, day };
+};
+
+const getDayIndex = (month, day) => {
+  const monthIndex = month - 1;
+  if (monthIndex < 0 || monthIndex >= months.length) {
     return null;
   }
-  return formatDayId(date.getMonth() + 1, date.getDate());
+  return monthStartIndices[monthIndex] + (day - 1);
+};
+
+const getMonthDayFromIndex = (index) => {
+  const safeIndex = ((index % totalDays) + totalDays) % totalDays;
+  let monthIndex = months.length - 1;
+  for (let i = 0; i < months.length; i += 1) {
+    const start = monthStartIndices[i];
+    const end = start + months[i].days;
+    if (safeIndex >= start && safeIndex < end) {
+      monthIndex = i;
+      break;
+    }
+  }
+  const day = safeIndex - monthStartIndices[monthIndex] + 1;
+  return { month: monthIndex + 1, day };
+};
+
+const getDayIdFromIndex = (index) => {
+  const { month, day } = getMonthDayFromIndex(index);
+  return formatDayId(month, day);
+};
+
+const shiftDayId = (dayId, delta) => {
+  const parsed = parseDayId(dayId);
+  if (!parsed) {
+    return null;
+  }
+  const index = getDayIndex(parsed.month, parsed.day);
+  if (index === null) {
+    return null;
+  }
+  return getDayIdFromIndex(index + delta);
+};
+
+const formatDateLabel = (dayId) => {
+  const parsed = parseDayId(dayId);
+  if (!parsed) {
+    return '';
+  }
+  const date = new Date(YEAR, parsed.month - 1, parsed.day);
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const getWeekStartIndex = (dayIndex) => Math.floor(dayIndex / 7) * 7;
+
+const getDayIdFromHash = () => {
+  const hash = window.location.hash.replace('#', '').trim();
+  return hash || null;
 };
 
 const buildYearView = () => {
@@ -120,6 +206,98 @@ const buildYearView = () => {
     yearList.appendChild(heading);
     yearList.appendChild(list);
   });
+};
+
+const buildMonthView = () => {
+  if (!monthList || !monthTitle) {
+    return;
+  }
+  const month = months[currentMonthIndex];
+  monthTitle.textContent = `${month.name} ${YEAR}`;
+  monthList.innerHTML = '';
+  for (let day = 1; day <= month.days; day += 1) {
+    const listItem = document.createElement('li');
+    const link = document.createElement('a');
+    const dayId = formatDayId(currentMonthIndex + 1, day);
+    link.href = `#${dayId}`;
+    link.dataset.day = dayId;
+    link.textContent = String(day);
+    listItem.appendChild(link);
+    monthList.appendChild(listItem);
+  }
+};
+
+const buildWeekView = () => {
+  if (!weekList || !weekTitle) {
+    return;
+  }
+  const startIndex = ((currentWeekStartIndex % totalDays) + totalDays) % totalDays;
+  const endIndex = ((startIndex + 6) % totalDays + totalDays) % totalDays;
+  const startLabel = formatDateLabel(getDayIdFromIndex(startIndex));
+  const endLabel = formatDateLabel(getDayIdFromIndex(endIndex));
+  weekTitle.textContent = `${startLabel} – ${endLabel}`;
+  weekList.innerHTML = '';
+  for (let offset = 0; offset < 7; offset += 1) {
+    const listItem = document.createElement('li');
+    const link = document.createElement('a');
+    const dayId = getDayIdFromIndex(startIndex + offset);
+    const parsed = parseDayId(dayId);
+    link.href = `#${dayId}`;
+    link.dataset.day = dayId;
+    link.textContent = `${months[parsed.month - 1].name.slice(0, 3)} ${parsed.day}`;
+    listItem.appendChild(link);
+    weekList.appendChild(listItem);
+  }
+};
+
+const updateDayNavigation = (dayId) => {
+  const previous = shiftDayId(dayId, -1);
+  const next = shiftDayId(dayId, 1);
+  if (dayPrev && dayPrevLabel && previous) {
+    dayPrevLabel.textContent = formatDateLabel(previous);
+    dayPrev.dataset.day = previous;
+  }
+  if (dayNext && dayNextLabel && next) {
+    dayNextLabel.textContent = formatDateLabel(next);
+    dayNext.dataset.day = next;
+  }
+};
+
+const setActiveViewButton = (view) => {
+  viewButtons.forEach((button) => {
+    const isActive = button.dataset.view === view;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
+};
+
+const hideCalendarViews = () => {
+  hideElement(yearView);
+  if (monthView) {
+    hideElement(monthView);
+  }
+  if (weekView) {
+    hideElement(weekView);
+  }
+};
+
+const showCalendarView = (view, updateHistory = true) => {
+  activeCalendarView = view;
+  setActiveViewButton(view);
+  hideCalendarViews();
+  if (view === 'month') {
+    showElement(monthView);
+    buildMonthView();
+  } else if (view === 'week') {
+    showElement(weekView);
+    buildWeekView();
+  } else {
+    showElement(yearView);
+  }
+  hideElement(dayView);
+  if (updateHistory) {
+    window.history.pushState({}, '', window.location.pathname);
+  }
 };
 
 const openModal = (index) => {
@@ -218,8 +396,18 @@ const showDayView = async (dayId, updateHistory = true) => {
     dayTitle.textContent = parsed.heading;
     dayBody.innerHTML = parsed.content;
     prepareImages();
-    hideElement(yearView);
+    const parsedDay = parseDayId(dayId);
+    if (parsedDay) {
+      currentMonthIndex = parsedDay.month - 1;
+      const dayIndex = getDayIndex(parsedDay.month, parsedDay.day);
+      currentWeekStartIndex = getWeekStartIndex(dayIndex ?? 0);
+    }
+    lastCalendarView = activeCalendarView;
+    hideCalendarViews();
     showElement(dayView);
+    updateDayNavigation(dayId);
+    const backLabel = viewLabels[lastCalendarView] || 'year';
+    dayBack.textContent = `← Back to ${backLabel}`;
 
     if (updateHistory) {
       window.history.pushState({ day: dayId }, '', `#${dayId}`);
@@ -227,15 +415,9 @@ const showDayView = async (dayId, updateHistory = true) => {
   } catch (error) {
     dayTitle.textContent = 'Unable to load day';
     dayBody.innerHTML = '<p>Sorry, something went wrong.</p>';
-    hideElement(yearView);
+    hideCalendarViews();
     showElement(dayView);
   }
-};
-
-const showYearView = () => {
-  showElement(yearView);
-  hideElement(dayView);
-  window.history.pushState({}, '', window.location.pathname);
 };
 
 const syncWithHash = () => {
@@ -244,10 +426,10 @@ const syncWithHash = () => {
     showDayView(dayId, false);
     return;
   }
-  showYearView();
+  showCalendarView(activeCalendarView, false);
 };
 
-yearView.addEventListener('click', (event) => {
+const handleDayLinkClick = (event) => {
   const link = event.target.closest('a');
   if (!link) {
     return;
@@ -255,9 +437,56 @@ yearView.addEventListener('click', (event) => {
   event.preventDefault();
   const dayId = link.dataset.day || link.getAttribute('href').replace('#', '');
   showDayView(dayId);
+};
+
+yearView.addEventListener('click', handleDayLinkClick);
+monthView.addEventListener('click', handleDayLinkClick);
+weekView.addEventListener('click', handleDayLinkClick);
+
+dayBack.addEventListener('click', () => showCalendarView(lastCalendarView));
+
+dayPrev.addEventListener('click', () => {
+  const dayId = dayPrev.dataset.day;
+  if (dayId) {
+    showDayView(dayId);
+  }
 });
 
-dayBack.addEventListener('click', showYearView);
+dayNext.addEventListener('click', () => {
+  const dayId = dayNext.dataset.day;
+  if (dayId) {
+    showDayView(dayId);
+  }
+});
+
+viewButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    const view = button.dataset.view;
+    if (view) {
+      showCalendarView(view);
+    }
+  });
+});
+
+monthPrev.addEventListener('click', () => {
+  currentMonthIndex = (currentMonthIndex - 1 + months.length) % months.length;
+  buildMonthView();
+});
+
+monthNext.addEventListener('click', () => {
+  currentMonthIndex = (currentMonthIndex + 1) % months.length;
+  buildMonthView();
+});
+
+weekPrev.addEventListener('click', () => {
+  currentWeekStartIndex = (currentWeekStartIndex - 7 + totalDays) % totalDays;
+  buildWeekView();
+});
+
+weekNext.addEventListener('click', () => {
+  currentWeekStartIndex = (currentWeekStartIndex + 7) % totalDays;
+  buildWeekView();
+});
 
 modalClose.addEventListener('click', closeModal);
 modalPrev.addEventListener('click', () => updateModalImage(currentImageIndex - 1));
@@ -279,14 +508,14 @@ window.addEventListener('keydown', (event) => {
     }
     if (event.key === 'ArrowLeft') {
       const dayId = getDayIdFromHash();
-      const previous = getAdjacentDayId(dayId, -1);
+      const previous = shiftDayId(dayId, -1);
       if (previous) {
         showDayView(previous);
       }
     }
     if (event.key === 'ArrowRight') {
       const dayId = getDayIdFromHash();
-      const next = getAdjacentDayId(dayId, 1);
+      const next = shiftDayId(dayId, 1);
       if (next) {
         showDayView(next);
       }
